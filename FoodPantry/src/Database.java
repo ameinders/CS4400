@@ -1,4 +1,5 @@
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -100,7 +101,7 @@ public class Database {
 			    stmt.executeUpdate(sqlCreate);
 			    rs = stmt.executeQuery(sql);
 
-			    //STEP 5: Extract data from result set
+			    //Extract data from result set
 			    while(rs.next()){
 			        //Retrieve by column name
 			    	String last = rs.getString("Last");
@@ -133,7 +134,7 @@ public class Database {
 	}
 	
 	/* Confirms the pickup for the selected client with the specific bag on the current date. 
-	 * Returns the rows affected. */
+	 * Returns the number of rows affected. */
 	public int confirmPickup(int cid, int bid) {
 		int rowsAffec = 0;
 		if (connect()) {	
@@ -146,6 +147,8 @@ public class Database {
 				  
 				stmt = con.prepareStatement(sql);
 				rowsAffec = stmt.executeUpdate(sql);
+				
+				stmt.close();
 				
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
@@ -193,6 +196,8 @@ public class Database {
 				stmt = con.prepareStatement("INSERT INTO Dropoff (DID, PID, Qty) VALUES ('" + did + "', '" + pid + "', '" + quantity + "');");
 				stmt.executeUpdate();
 				
+				stmt.close();
+				
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
@@ -202,6 +207,90 @@ public class Database {
 		}
 	}
 	
+	/* Takes in a last name and telephone number, one of which will be null. Searches for a client
+	 * based on the parameters and returns a ResultSet with the values to display. 
+	 * Null is returned if can't connect or no values to display. */
+	public ResultSet searchClient(String lName, String telephone) {
+		ResultSet rs = null;
+		if (connect()) {	
+			try {
+				
+				System.out.println("Search for Clients:");
+				PreparedStatement stmt = con.prepareStatement("SELECT Last, First, Street, City, State, "
+						+ "Zip, ApartmentNum, Phone, Start, CID FROM Client NATURAL JOIN (SELECT CID, COUNT(*) "
+						+ "AS “Size” FROM FamilyMember GROUP BY CID) AS T WHERE Last = '" + lName + "' OR "
+						+ "Phone = '" + telephone + "'");
+				rs = stmt.executeQuery();
+				
+				//Extract data from result set
+			    while(rs.next()){
+			        //Retrieve by column name
+			    	String last = rs.getString("Last");
+			        String first = rs.getString("First");
+			        String address = rs.getString("apartmentNum") + " " + rs.getString("Street") + " " 
+			        		+ rs.getString("City") + " " + rs.getString("State") + " " + rs.getString("zip");
+			        String phone = rs.getString("Phone");
+			        Date start = rs.getDate("Start");
+
+			        //Display values
+			        System.out.print("Last: " + last);
+			        System.out.print(", First: " + first);
+			        System.out.print(", Address: " + address);
+			        System.out.print(", Phone: " + phone);
+			        System.out.print(", Start: " + start);
+			     }
+			    stmt.close();
+			    
+			} catch(Exception e) {
+				System.err.println("Exception: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				close();
+			}
+		}
+		return rs;
+	}
+	
+	/* Takes in a  */
+	public void addClient(String bagType, int pickup, String first, String last, String gender, Date dob,
+			String street, int apt, String city, String state, int zip, String phone, String finAid,
+			Date start, int pDay) {
+		if (connect()) {	
+			try {
+				ResultSet rs;
+				System.out.println("Add a Client:");
+				PreparedStatement stmt = con.prepareStatement("SELECT BID FROM Bag WHERE Name = '" + bagType + "'");
+				rs = stmt.executeQuery();
+				rs.next();
+				int bid = rs.getInt("BID");
+				
+				stmt = con.prepareStatement("SELECT FID FROM FinancialAid WHERE Name = '" + finAid + "'");
+				rs = stmt.executeQuery();
+				rs.next();
+				int fid = rs.getInt("FID");
+				
+				stmt = con.prepareStatement("INSERT INTO Client(First, Last, Phone, BID, FID, Gender, DOB, "
+						+ "Start, PDay, Street, City, State, Zip, ApartmentNum) VALUES('" + first + "', '" + last + "', '" 
+						+ phone + "', '" + bid + "', '" + fid + "', '" + gender + "', '" + dob + "', '" + start + "', '"
+						+ pDay + "', '" + street + "', '" + city + "', '" + state + "', '" + zip + "', '" + apt + "')");
+				stmt.executeUpdate();
+				
+				stmt.close();
+			    
+			} catch(Exception e) {
+				System.err.println("Exception: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				close();
+			}
+		}
+	}
+				
+	
 	
 
+	
+	
+	
+	
 }
