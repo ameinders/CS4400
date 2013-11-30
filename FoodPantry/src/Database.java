@@ -251,7 +251,7 @@ public class Database {
 		return rs;
 	}
 	
-	/* Takes in a  */
+	/* Takes in the data for the client and creates the client.  */
 	public void addClient(String bagType, int pickup, String first, String last, String gender, Date dob,
 			String street, int apt, String city, String state, int zip, String phone, String finAid,
 			Date start, int pDay) {
@@ -287,9 +287,66 @@ public class Database {
 	}
 				
 	
+	/* Takes in the CID of the client, and the data for the family member and creates the family member. */
+	public void addFamily(int cid, String first, String last, String gender, Date dob) {
+		if (connect()) {	
+			try {
+				ResultSet rs;
+				System.out.println("Add a Family Member:");
+				PreparedStatement stmt = con.prepareStatement("INSERT INTO FamilyMember(CID, First, Last, DOB, Gender)"
+						+ " VALUES('" + cid + "', '" + first + "', '" + last + "', '" + dob + "', '" + gender + "')");
+				stmt.executeUpdate();
+				
+				stmt.close();
+			    
+			} catch(Exception e) {
+				System.err.println("Exception: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				close();
+			}
+		}
+	}
 	
-
 	
+	/* Returns a result set which holds all the information for each bag type. */
+	public ResultSet viewBags() {
+		ResultSet rs = null;
+		if (connect()) {	
+			try {
+				System.out.println("View Bags:");
+				
+				//a view for the number of items for each BID
+				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW ItemsInBag AS SELECT BID, count(*) AS NumItems FROM Holds WHERE CurrentMonthQty > 0 GROUP BY BID");
+				stmt.executeUpdate();
+				
+				//a view for the number of clients for each BID
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW ClientsForBag AS SELECT BID, count(*) AS NumClients FROM Client GROUP BY BID");
+				stmt.executeUpdate();
+				
+				//a view for the cost for each product in each bag
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CostOfItems AS SELECT BID, PID, CurrentMonthQty, Cost FROM Holds NATURAL JOIN Product");
+				stmt.executeUpdate();
+				
+				//a view for the cost for each BID
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CostOfBags AS SELECT BID, SUM(Cost) AS Cost FROM CostOfItems GROUP BY BID");
+				stmt.executeUpdate();
+				
+				//join all the tables together with the bag name
+				stmt = con.prepareStatement("SELECT Name, NumItems, NumClients, Cost FROM ((Bag NATURAL JOIN ItemsInBag) NATURAL JOIN ClientsForBag) NATURAL JOIN CostOfBags");
+				rs = stmt.executeQuery();
+				
+				stmt.close();
+				
+			} catch(Exception e) {
+				System.err.println("Exception: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				close();
+			}
+		}
+		return rs;
+	}
 	
 	
 	
