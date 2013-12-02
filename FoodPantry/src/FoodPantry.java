@@ -34,6 +34,7 @@ public class FoodPantry {
 	    dB.viewBags();
 	    //dB.editBagProduct(1, "Bananas", 10);
 	    dB.listProducts(null);
-	    dB.addProduct("Green beans", "Kroger", .50);
+	    //dB.addProduct("Green beans", "Kroger", .50);
+	    dB.groceryReport();
 	}
 }

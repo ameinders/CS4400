@@ -421,13 +421,13 @@ public class Database {
 				//get the dropoff quantities for each product of last month
 				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW LstMthDQty AS SELECT "
 						+ "PID, SUM(Qty) AS TotalDQty FROM DropoffTransaction NATURAL JOIN Dropoff "
-						+ "WHERE Month(Date) = MONTH(CURDATE())-2 GROUP BY PID");
+						+ "WHERE Month(Date) = MONTH(CURDATE())-1 GROUP BY PID");
 				stmt.executeUpdate();
 
 				//get the pickup quantities for each product of last month
 				stmt = con.prepareStatement("CREATE OR REPLACE VIEW LstMthPTQtw AS SELECT PID, "
 						+ "SUM(LastMonthQty) AS TotalPTQty FROM PickupTransaction NATURAL JOIN HOLDS "
-						+ "WHERE Month(Date) = MONTH(CURDATE())-2 GROUP BY PID");
+						+ "WHERE Month(Date) = MONTH(CURDATE())-1 GROUP BY PID");
 				stmt.executeUpdate();
 				
 				//subtract the dropoff and pickup quantities
@@ -438,13 +438,13 @@ public class Database {
 				//get the dropoff quantities for each product of curr month
 				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthDQty AS SELECT PID, SUM(Qty)"
 						+ "AS TotalDQty FROM DropoffTransaction NATURAL JOIN Dropoff WHERE Month(Date) = "
-						+ "MONTH(CURDATE())-1 GROUP BY PID");
+						+ "MONTH(CURDATE()) GROUP BY PID");
 				stmt.executeUpdate();
 				
 				//get the pickup quantities for each product of curr month
 				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthPTQtw AS SELECT PID, SUM(LastMonthQty) "
 						+ "AS TotalPTQty FROM PickupTransaction NATURAL JOIN HOLDS WHERE Month(Date) = "
-						+ "MONTH(CURDATE())-1 GROUP BY PID");
+						+ "MONTH(CURDATE()) GROUP BY PID");
 				stmt.executeUpdate();
 				
 				//subtract the dropoff and pickup quantities
@@ -499,7 +499,8 @@ public class Database {
 					sid = rs.getInt("SID");
 				}
 				
-				stmt = con.prepareStatement("INSERT INTO Product (Name, SID, Cost) VALUES ('" + product + "' ,'" + sid + "' ,'" + cost + "')");
+				stmt = con.prepareStatement("INSERT INTO Product (Name, SID, Cost) VALUES ('" + product 
+						+ "' ,'" + sid + "' ,'" + cost + "')");
 				stmt.executeUpdate();
 				
 				stmt.close();
@@ -514,7 +515,62 @@ public class Database {
 	}
 
 	
+	public ResultSet msr(/*month*/) {
+		//TODO
+		ResultSet rs = null;
+		return rs;
+	}
+	
+	/*  */
+	public ResultSet groceryReport() {
+		ResultSet rs = null;
+		if (connect()) {
+			try {
+				System.out.println("Display Grocery Report:");
+				
+				//creates a view of the transactions which occurred last month
+				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW LastMthPT"
+						+ " AS SELECT BID, CID FROM PickupTransaction WHERE Month(Date) = MONTH(CURDATE())-1");
+				stmt.executeUpdate();
+
+				//displays the quantities of each product for the last month
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW LastMthQT "
+						+ "AS SELECT Name, SUM(LastMonthQty) AS LastMonthQuantity FROM (LastMthPT "
+						+ "NATURAL JOIN Holds) NATURAL JOIN Product GROUP BY Name");
+				stmt.executeUpdate();
+				
+				//creates a view of the bags to be picked up this month
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthPT AS SELECT BID, CID FROM Client");
+				stmt.executeUpdate();
+				
+				//displays the quantities of each product for the current month
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthQT AS SELECT Name, SUM(CurrentMonthQty) "
+						+ "AS CurrentMonthQuantity FROM (CurrMthPT NATURAL JOIN Holds) NATURAL JOIN Product "
+						+ "GROUP BY Name");
+				stmt.executeUpdate();
+				
+				//displays the final table
+				stmt = con.prepareStatement("SELECT c.NAME, CurrentMonthQuantity, LastMonthQuantity FROM "
+						+ "CurrMthQT c LEFT JOIN LastMthQT l ON c.Name = l.Name UNION SELECT l.NAME, "
+						+ "CurrentMonthQuantity, LastMonthQuantity FROM CurrMthQT c RIGHT JOIN "
+						+ "LastMthQT l ON c.Name = l.Name");
+				rs = stmt.executeQuery();
+				
+				stmt.close();
+			    
+			} catch(Exception e) {
+				System.err.println("Exception: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				close();
+			}
+		}
+		return rs;
+	}
+	
+	/*
+	 
 	
 	
-	
+	*/
 }
