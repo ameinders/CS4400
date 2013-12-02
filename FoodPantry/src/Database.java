@@ -317,23 +317,28 @@ public class Database {
 				System.out.println("View Bags:");
 				
 				//a view for the number of items for each BID
-				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW ItemsInBag AS SELECT BID, count(*) AS NumItems FROM Holds WHERE CurrentMonthQty > 0 GROUP BY BID");
+				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW ItemsInBag AS SELECT BID, "
+						+ "count(*) AS NumItems FROM Holds WHERE CurrentMonthQty > 0 GROUP BY BID");
 				stmt.executeUpdate();
 				
 				//a view for the number of clients for each BID
-				stmt = con.prepareStatement("CREATE OR REPLACE VIEW ClientsForBag AS SELECT BID, count(*) AS NumClients FROM Client GROUP BY BID");
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW ClientsForBag AS SELECT BID, count(*) "
+						+ "AS NumClients FROM Client GROUP BY BID");
 				stmt.executeUpdate();
 				
 				//a view for the cost for each product in each bag
-				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CostOfItems AS SELECT BID, PID, CurrentMonthQty, Cost FROM Holds NATURAL JOIN Product");
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CostOfItems AS SELECT BID, PID, CurrentMonthQty,"
+						+ " Cost FROM Holds NATURAL JOIN Product");
 				stmt.executeUpdate();
 				
 				//a view for the cost for each BID
-				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CostOfBags AS SELECT BID, SUM(Cost) AS Cost FROM CostOfItems GROUP BY BID");
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CostOfBags AS SELECT BID, SUM(Cost) AS Cost "
+						+ "FROM CostOfItems GROUP BY BID");
 				stmt.executeUpdate();
 				
 				//join all the tables together with the bag name
-				stmt = con.prepareStatement("SELECT Name, NumItems, NumClients, Cost FROM ((Bag NATURAL JOIN ItemsInBag) NATURAL JOIN ClientsForBag) NATURAL JOIN CostOfBags");
+				stmt = con.prepareStatement("SELECT Name, NumItems, NumClients, Cost FROM ((Bag NATURAL JOIN ItemsInBag) "
+						+ "NATURAL JOIN ClientsForBag) NATURAL JOIN CostOfBags");
 				rs = stmt.executeQuery();
 				
 				stmt.close();
@@ -347,6 +352,168 @@ public class Database {
 		}
 		return rs;
 	}
+	
+	/* Returns a result set which holds all the contents of a bag type. */
+	public ResultSet bagContents(int bid) {
+		ResultSet rs = null;
+		if (connect()) {
+			try {
+				System.out.println("View a bag's contents:");
+				
+				//displays the quantity of each product with a quantity > 0 in the bag
+				PreparedStatement stmt = con.prepareStatement("SELECT Name, CurrentMonthQty FROM Product "
+						+ "NATURAL JOIN (SELECT PID, CurrentMonthQty FROM Holds WHERE BID = '" + bid + 
+						"' AND CurrentMonthQty > 0) AS Qty");
+				rs = stmt.executeQuery();
+				
+				stmt.close();
+			    
+			} catch(Exception e) {
+				System.err.println("Exception: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				close();
+			}
+		}
+		return rs;
+	}
+
+	/* Updates the quantity of a product for a bag, given the product name, and the quantity. */
+	public void editBagProduct(int bid, String product, int quantity) {
+		if (connect()) {
+			try {
+				ResultSet rs = null;
+				int pid = 0;
+				System.out.println("Edit Bag Product:");
+				PreparedStatement stmt = con.prepareStatement("SELECT PID FROM Product WHERE Name = '" + product + "'");
+				rs = stmt.executeQuery();
+				rs.next();
+				pid = rs.getInt("PID");
+
+				if (pid == 0)
+					System.out.println("Error: Product doesn't exist");
+				else
+				//update last month and current month quantities
+				stmt = con.prepareStatement("UPDATE Holds SET LastMonthQty = CurrentMonthQty, CurrentMonthQty = '" + quantity 
+						+ "' WHERE BID = '" + bid + "' AND PID = '" + pid + "'");
+				stmt.executeUpdate();
+				
+				stmt.close();
+			    
+			} catch(Exception e) {
+				System.err.println("Exception: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				close();
+			}
+		}
+	}
+	
+	/* Takes in a product. Searches for the product and returns a ResultSet with the values to display. 
+	 * All products returned if parameter is null. Null is returned if can't connect or no values to display. */
+	@SuppressWarnings("resource")
+	public ResultSet listProducts(String product) {
+		ResultSet rs = null;
+		if (connect()) {
+			try {
+				System.out.println("List Products:");
+				
+				//get the dropoff quantities for each product of last month
+				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW LstMthDQty AS SELECT "
+						+ "PID, SUM(Qty) AS TotalDQty FROM DropoffTransaction NATURAL JOIN Dropoff "
+						+ "WHERE Month(Date) = MONTH(CURDATE())-2 GROUP BY PID");
+				stmt.executeUpdate();
+
+				//get the pickup quantities for each product of last month
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW LstMthPTQtw AS SELECT PID, "
+						+ "SUM(LastMonthQty) AS TotalPTQty FROM PickupTransaction NATURAL JOIN HOLDS "
+						+ "WHERE Month(Date) = MONTH(CURDATE())-2 GROUP BY PID");
+				stmt.executeUpdate();
+				
+				//subtract the dropoff and pickup quantities
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW LastQtw AS SELECT PID, "
+						+ "(TotalDQty - TotalPTQty) AS TotalLMQty FROM LstMthDQty NATURAL JOIN LstMthPTQtw");
+				stmt.executeUpdate();
+				
+				//get the dropoff quantities for each product of curr month
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthDQty AS SELECT PID, SUM(Qty)"
+						+ "AS TotalDQty FROM DropoffTransaction NATURAL JOIN Dropoff WHERE Month(Date) = "
+						+ "MONTH(CURDATE())-1 GROUP BY PID");
+				stmt.executeUpdate();
+				
+				//get the pickup quantities for each product of curr month
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthPTQtw AS SELECT PID, SUM(LastMonthQty) "
+						+ "AS TotalPTQty FROM PickupTransaction NATURAL JOIN HOLDS WHERE Month(Date) = "
+						+ "MONTH(CURDATE())-1 GROUP BY PID");
+				stmt.executeUpdate();
+				
+				//subtract the dropoff and pickup quantities
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrQtw AS SELECT PID, (TotalDQty - TotalPTQty) "
+						+ "AS TotalCMQty FROM CurrMthDQty NATURAL JOIN CurrMthPTQtw");
+				stmt.executeUpdate();
+				
+				//add total quantities and display name and cost
+				if (product == null)
+					stmt = con.prepareStatement("SELECT Name, (TotalLMQty + TotalCMQty) AS Quantity, Cost "
+							+ "FROM Product NATURAL JOIN LastQtw NATURAL JOIN CurrQtw");
+				else
+					stmt = con.prepareStatement("SELECT Name, (TotalLMQty + TotalCMQty) AS Quantity, Cost "
+							+ "FROM Product NATURAL JOIN LastQtw NATURAL JOIN CurrQtw "
+							+ "WHERE Name = '" + product + "'");
+				
+				rs = stmt.executeQuery();
+				
+				stmt.close();
+			    
+			} catch(Exception e) {
+				System.err.println("Exception: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				close();
+			}
+		}
+		return rs;
+	}
+	
+	/* Adds the new product, given the product name, source, and cost per unit. */
+	public void addProduct(String product, String source, double cost) {
+		if (connect()) {
+			try {
+				ResultSet rs = null;
+				System.out.println("Add a Product:");
+				
+				PreparedStatement stmt = con.prepareStatement("SELECT SID FROM Source WHERE name = '" + source + "'");
+				rs = stmt.executeQuery();
+				int sid = 0;
+				if (rs.next())
+					sid = rs.getInt("SID");
+				
+				//if source doesn’t exist, first add it in the Source table
+				if (sid == 0) {
+					stmt = con.prepareStatement("INSERT INTO Source (Name) VALUES ('" + source + "')");
+					stmt.executeUpdate();
+					
+					stmt = con.prepareStatement("SELECT SID FROM Source WHERE name = '" + source + "'");
+					rs = stmt.executeQuery();
+					rs.next();
+					sid = rs.getInt("SID");
+				}
+				
+				stmt = con.prepareStatement("INSERT INTO Product (Name, SID, Cost) VALUES ('" + product + "' ,'" + sid + "' ,'" + cost + "')");
+				stmt.executeUpdate();
+				
+				stmt.close();
+			    
+			} catch(Exception e) {
+				System.err.println("Exception: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				close();
+			}
+		}
+	}
+
+	
 	
 	
 	

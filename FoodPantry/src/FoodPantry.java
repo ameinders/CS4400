@@ -32,5 +32,8 @@ public class FoodPantry {
 		//d = new Date(1989, 1, 26);	//These don't actually give the right date
 		//dB.addFamily(4, "Hary", "Yin", "Male", d);
 	    dB.viewBags();
+	    //dB.editBagProduct(1, "Bananas", 10);
+	    dB.listProducts(null);
+	    dB.addProduct("Green beans", "Kroger", .50);
 	}
 }
