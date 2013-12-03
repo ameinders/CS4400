@@ -19,12 +19,10 @@ public class Database {
 		con = null;
 	}
 	
-	
-	
 	public boolean connect() {
 		try {
 			Class.forName("com.mysql.jdbc.Driver").newInstance();
-			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/cs4400", "root", "sowarm2");
+			con = DriverManager.getConnection("jdbc:mysql://academic-mysql.cc.gatech.edu/cs4400_Group_25", "cs4400_Group_25", "UZNgIGrN");
 			
 			if (!con.isClosed()) {
 				System.out.println("Successfully connected to " + "MySQL server.");
