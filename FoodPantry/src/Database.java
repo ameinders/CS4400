@@ -19,10 +19,12 @@ public class Database {
 		con = null;
 	}
 	
+	
+	
 	public boolean connect() {
 		try {
 			Class.forName("com.mysql.jdbc.Driver").newInstance();
-			con = DriverManager.getConnection("jdbc:mysql://academic-mysql.cc.gatech.edu/cs4400_Group_25", "cs4400_Group_25", "UZNgIGrN");
+			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/cs4400", "root", "sowarm2");
 			
 			if (!con.isClosed()) {
 				System.out.println("Successfully connected to " + "MySQL server.");
@@ -36,12 +38,12 @@ public class Database {
 		return false;
 	}
 	
-	public void close() {
+	/*public void close() {
 		try {
 			if (con != null)
 				con.close();
 		} catch(SQLException e) {};
-	}
+	}*/
 	
 	
 	/* Checks the login credentials. Returns true if the login is valid. False otherwise. */
@@ -67,7 +69,7 @@ public class Database {
 				}
 				else {
 					System.out.println("Login successful");
-					stmt.close();
+					//stmt.close();
 					return true;
 				}
 				
@@ -75,7 +77,7 @@ public class Database {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 		return false;
@@ -121,13 +123,13 @@ public class Database {
 			        System.out.print(", PDay: " + pday);
 			     }
 			      
-			     stmt.close();
+			     //stmt.close();
 				
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 	return rs;
@@ -148,13 +150,13 @@ public class Database {
 				stmt = con.prepareStatement(sql);
 				rowsAffec = stmt.executeUpdate(sql);
 				
-				stmt.close();
+				//stmt.close();
 				
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 		return rowsAffec;
@@ -196,13 +198,13 @@ public class Database {
 				stmt = con.prepareStatement("INSERT INTO Dropoff (DID, PID, Qty) VALUES ('" + did + "', '" + pid + "', '" + quantity + "');");
 				stmt.executeUpdate();
 				
-				stmt.close();
+				//stmt.close();
 				
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 	}
@@ -239,13 +241,13 @@ public class Database {
 			        System.out.print(", Phone: " + phone);
 			        System.out.print(", Start: " + start);
 			     }
-			    stmt.close();
+			    //stmt.close();
 			    
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 		return rs;
@@ -275,13 +277,13 @@ public class Database {
 						+ pDay + "', '" + street + "', '" + city + "', '" + state + "', '" + zip + "', '" + apt + "')");
 				stmt.executeUpdate();
 				
-				stmt.close();
+				//stmt.close();
 			    
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 	}
@@ -297,13 +299,13 @@ public class Database {
 						+ " VALUES('" + cid + "', '" + first + "', '" + last + "', '" + dob + "', '" + gender + "')");
 				stmt.executeUpdate();
 				
-				stmt.close();
+				//stmt.close();
 			    
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 	}
@@ -341,13 +343,13 @@ public class Database {
 						+ "NATURAL JOIN ClientsForBag) NATURAL JOIN CostOfBags");
 				rs = stmt.executeQuery();
 				
-				stmt.close();
+				//stmt.close();
 				
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 		return rs;
@@ -366,13 +368,13 @@ public class Database {
 						"' AND CurrentMonthQty > 0) AS Qty");
 				rs = stmt.executeQuery();
 				
-				stmt.close();
+				//stmt.close();
 			    
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 		return rs;
@@ -398,13 +400,13 @@ public class Database {
 						+ "' WHERE BID = '" + bid + "' AND PID = '" + pid + "'");
 				stmt.executeUpdate();
 				
-				stmt.close();
+				//stmt.close();
 			    
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 	}
@@ -463,13 +465,13 @@ public class Database {
 				
 				rs = stmt.executeQuery();
 				
-				stmt.close();
+				//stmt.close();
 			    
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 		return rs;
@@ -503,13 +505,13 @@ public class Database {
 						+ "' ,'" + sid + "' ,'" + cost + "')");
 				stmt.executeUpdate();
 				
-				stmt.close();
+				//stmt.close();
 			    
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 	}
@@ -556,13 +558,13 @@ public class Database {
 						+ "LastMthQT l ON c.Name = l.Name");
 				rs = stmt.executeQuery();
 				
-				stmt.close();
+				//stmt.close();
 			    
 			} catch(Exception e) {
 				System.err.println("Exception: " + e.getMessage());
 				e.printStackTrace();
 			} finally {
-				close();
+				//close();
 			}
 		}
 		return rs;

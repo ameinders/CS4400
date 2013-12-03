@@ -6,6 +6,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.Vector;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -14,14 +18,16 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.UIManager;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
 public class BagListPanel extends JPanel {
-	public BagListPanel(ActionListener selectBagListener, final ActionListener returnButtonListener) {
+	public BagListPanel(ActionListener selectBagListener, final ActionListener returnButtonListener) throws SQLException {
 		super(new BorderLayout());
 		/* North Panel */
 		JPanel northPanel = new JPanel(new GridBagLayout());
@@ -43,14 +49,21 @@ public class BagListPanel extends JPanel {
 		});
 		add(northPanel, BorderLayout.NORTH);
 
+		//Alex: Took this out
 		/* Table Panel */
-		String[] columnNames = { "View/Edit", "Bag Name", "# Items", "# Clients", "Cost" };
+		/*String[] columnNames = { "View/Edit", "Bag Name", "# Items", "# Clients", "Cost" };
 		Object[][] data = { { "  ", "Individual", new Integer(10), new Integer(5), new Integer(0) },
 				{ " ", "Family of Two", new Integer(25), new Integer(12), new Integer(0) } };
-		JTable table = new JTable(data, columnNames);
+		JTable table = new JTable(data, columnNames);*/
+		
+		//Alex
+		Database db = new Database();
+	    // It creates and displays the table
+	    JTable table = new JTable(buildTableModel(db.viewBags()));
 
-		table.getColumn("View/Edit").setCellRenderer(new ButtonRenderer());
-		table.getColumn("View/Edit").setCellEditor(new ButtonEditor(new JCheckBox(), selectBagListener));
+	    //Alex: Took this out
+		//table.getColumn("View/Edit").setCellRenderer(new ButtonRenderer());
+		//table.getColumn("View/Edit").setCellEditor(new ButtonEditor(new JCheckBox(), selectBagListener));
 
 		JScrollPane scrollPane = new JScrollPane(table);
 		table.setFillsViewportHeight(true);
@@ -65,6 +78,32 @@ public class BagListPanel extends JPanel {
 			}
 		});
 		add(southPanel, BorderLayout.SOUTH);
+	}
+	
+	//Alex
+	public static DefaultTableModel buildTableModel(ResultSet rs) throws SQLException {
+
+	    ResultSetMetaData metaData = rs.getMetaData();
+
+	    // names of columns
+	    Vector<String> columnNames = new Vector<String>();
+	    int columnCount = metaData.getColumnCount();
+	    for (int column = 1; column <= columnCount; column++) {
+	        columnNames.add(metaData.getColumnName(column));
+	    }
+
+	    // data of the table
+	    Vector<Vector<Object>> data = new Vector<Vector<Object>>();
+	    while (rs.next()) {
+	        Vector<Object> vector = new Vector<Object>();
+	        for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
+	            vector.add(rs.getObject(columnIndex));
+	        }
+	        data.add(vector);
+	    }
+
+	    return new DefaultTableModel(data, columnNames);
+
 	}
 
 	class ButtonRenderer extends JButton implements TableCellRenderer {

@@ -1,6 +1,7 @@
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.SQLException;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -46,11 +47,12 @@ public class Driver {
 	}
 
 	private static void loginAttempt(String username, String password) {
+		Database db = new Database();
 		System.out.printf(
 				"User attempted login with username %s and password %s.\n",
 				username, password);
-		boolean success = true;
-		if (success) {
+		//boolean success = true;
+		if (db.login(username, password)) {
 			setPanel(getHomePanel());
 		} else {
 			JOptionPane.showMessageDialog(applicationFrame,
@@ -68,7 +70,12 @@ public class Driver {
 			};
 			ActionListener bagsListener = new ActionListener() {
 				public void actionPerformed(ActionEvent ae) {
-					setPanel(getBagListPanel());
+					try {
+						setPanel(getBagListPanel());
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 			};
 			ActionListener dropoffsListener = new ActionListener() {
@@ -99,6 +106,7 @@ public class Driver {
 	}
 
 	private static PickupsPanel getPickupsPanel() {
+		Database db = new Database();
 		if (pickups_panel == null) {
 			pickups_panel = new PickupsPanel(new ActionListener() {
 				public void actionPerformed(ActionEvent ae) {
@@ -193,7 +201,7 @@ public class Driver {
 		return add_family_panel;
 	}
 
-	private static BagListPanel getBagListPanel() {
+	private static BagListPanel getBagListPanel() throws SQLException {
 		if (bag_list_panel == null) {
 			bag_list_panel = new BagListPanel(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
@@ -213,12 +221,22 @@ public class Driver {
 		if (edit_bag_panel == null) {
 			edit_bag_panel = new EditBagPanel(new ActionListener() {
 				public void actionPerformed(ActionEvent arg0) {
-					setPanel(getBagListPanel());
+					try {
+						setPanel(getBagListPanel());
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 			}, new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					System.out.println("Save bag!!!!");
-					setPanel(getBagListPanel());
+					try {
+						setPanel(getBagListPanel());
+					} catch (SQLException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 				}
 			});
 		}
