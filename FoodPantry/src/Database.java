@@ -218,7 +218,7 @@ public class Database {
 				System.out.println("Search for Clients:");
 				PreparedStatement stmt = con.prepareStatement("SELECT Last, First, Street, City, State, "
 						+ "Zip, ApartmentNum, Phone, Start, CID FROM Client NATURAL JOIN (SELECT CID, COUNT(*) "
-						+ "AS “Size” FROM FamilyMember GROUP BY CID) AS T WHERE Last = '" + lName + "' OR "
+						+ "AS Size FROM FamilyMember GROUP BY CID) AS T WHERE Last = '" + lName + "' OR "
 						+ "Phone = '" + telephone + "'");
 				rs = stmt.executeQuery();
 				
@@ -269,10 +269,18 @@ public class Database {
 				rs.next();
 				int fid = rs.getInt("FID");
 				
-				stmt = con.prepareStatement("INSERT INTO Client(First, Last, Phone, BID, FID, Gender, DOB, "
+				stmt = con.prepareStatement("INSERT INTO Client(First, Last, Phone, BID, Gender, DOB, "
 						+ "Start, PDay, Street, City, State, Zip, ApartmentNum) VALUES('" + first + "', '" + last + "', '" 
-						+ phone + "', '" + bid + "', '" + fid + "', '" + gender + "', '" + dob + "', '" + start + "', '"
+						+ phone + "', '" + bid + "', '" + gender + "', '" + dob + "', '" + start + "', '"
 						+ pDay + "', '" + street + "', '" + city + "', '" + state + "', '" + zip + "', '" + apt + "')");
+				stmt.executeUpdate();
+				
+				stmt = con.prepareStatement("SELECT CID FROM Client WHERE First = '" + first + "' AND Last = '" + last + "'");
+				rs = stmt.executeQuery();
+				rs.next();
+				int cid = rs.getInt("CID");
+				
+				stmt = con.prepareStatement("INSERT INTO HasAid(FID, CID)VALUES('" + fid + "', '" + cid + "')");
 				stmt.executeUpdate();
 				
 				//stmt.close();
@@ -426,7 +434,7 @@ public class Database {
 
 				//get the pickup quantities for each product of last month
 				stmt = con.prepareStatement("CREATE OR REPLACE VIEW LstMthPTQtw AS SELECT PID, "
-						+ "SUM(LastMonthQty) AS TotalPTQty FROM PickupTransaction NATURAL JOIN HOLDS "
+						+ "SUM(LastMonthQty) AS TotalPTQty FROM PickupTransaction NATURAL JOIN Holds "
 						+ "WHERE Month(Date) = MONTH(CURDATE())-1 GROUP BY PID");
 				stmt.executeUpdate();
 				
@@ -443,7 +451,7 @@ public class Database {
 				
 				//get the pickup quantities for each product of curr month
 				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthPTQtw AS SELECT PID, SUM(LastMonthQty) "
-						+ "AS TotalPTQty FROM PickupTransaction NATURAL JOIN HOLDS WHERE Month(Date) = "
+						+ "AS TotalPTQty FROM PickupTransaction NATURAL JOIN Holds WHERE Month(Date) = "
 						+ "MONTH(CURDATE()) GROUP BY PID");
 				stmt.executeUpdate();
 				
