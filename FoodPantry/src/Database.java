@@ -148,7 +148,7 @@ public class Database {
 				System.out.println("Confirm a Pickup:");
 			    String sql;
 			    
-				sql = "INSERT INTO PickupTransaction (CID, BID, Date) VALUES ('" + cid + "', '" + bid + "', CURDATE())";
+				sql = "INSERT INTO PickupTransaction (CID, BID, Date) VALUES ('" + cid + "', '" + bid + "', CURDATE() - INTERVAL 1 MONTH)";
 				PreparedStatement stmt = con.prepareStatement(sql);
 				  
 				stmt = con.prepareStatement(sql);
@@ -182,7 +182,7 @@ public class Database {
 				rs.next();
 				int sid = rs.getInt("SID");
 				
-				stmt = con.prepareStatement("SELECT DID FROM DropoffTransaction WHERE SID = '" + sid + "' AND Date = CURDATE()");
+				stmt = con.prepareStatement("SELECT DID FROM DropoffTransaction WHERE SID = '" + sid + "' AND Date = CURDATE() - INTERVAL 1 MONTH");
 				rs = stmt.executeQuery();
 				int did = 0;
 				if (rs.next())
@@ -190,10 +190,10 @@ public class Database {
 				
 				//if a transaction from this source today doesn’t exist, create it
 				if (did == 0) {
-					stmt = con.prepareStatement("INSERT INTO DropoffTransaction (SID, Date) VALUES ('" + sid + "', CURDATE());");
+					stmt = con.prepareStatement("INSERT INTO DropoffTransaction (SID, Date) VALUES ('" + sid + "', CURDATE() - INTERVAL 1 MONTH);");
 					stmt.executeUpdate();
 					
-					stmt = con.prepareStatement("SELECT DID FROM DropoffTransaction WHERE SID = '" + sid + "' AND Date = CURDATE()");
+					stmt = con.prepareStatement("SELECT DID FROM DropoffTransaction WHERE SID = '" + sid + "' AND Date = CURDATE() - INTERVAL 1 MONTH");
 					rs = stmt.executeQuery();
 					rs.next();
 					did = rs.getInt("DID");
@@ -431,17 +431,18 @@ public class Database {
 		if (connect()) {
 			try {
 				System.out.println("List Products:");
+				int curMonth = 11;
 				
 				//get the dropoff quantities for each product of last month
 				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW LstMthDQty"
 						+ " AS SELECT PID, SUM(Qty) AS TotalDQty FROM DropoffTransaction "
-						+ "NATURAL JOIN Dropoff WHERE Month(Date) = MONTH(CURDATE())-1 GROUP BY PID");
+						+ "NATURAL JOIN Dropoff WHERE Month(Date) = '" + (curMonth-1) + "' GROUP BY PID");
 				stmt.executeUpdate();
 
 				//get the pickup quantities for each product of last month
 				stmt = con.prepareStatement("CREATE OR REPLACE VIEW LstMthPTQtw AS SELECT PID, "
 						+ "SUM(LastMonthQty) AS TotalPTQty FROM PickupTransaction NATURAL JOIN Holds "
-						+ "WHERE Month(Date) = MONTH(CURDATE())-1 GROUP BY PID");
+						+ "WHERE Month(Date) = '" + (curMonth-1) + "' GROUP BY PID");
 				stmt.executeUpdate();
 				
 				//subtract the dropoff and pickup quantities
@@ -454,13 +455,13 @@ public class Database {
 				//get the dropoff quantities for each product of curr month
 				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthDQty AS SELECT PID, SUM(Qty) "
 						+ "AS TotalDQty FROM DropoffTransaction NATURAL JOIN Dropoff WHERE Month(Date) = "
-						+ "MONTH(CURDATE()) GROUP BY PID");
+						+ "'" + curMonth + "' GROUP BY PID");
 				stmt.executeUpdate();
 				
 				//get the pickup quantities for each product of curr month
 				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthPTQtw AS SELECT PID, "
 						+ "SUM(LastMonthQty) AS TotalPTQty FROM PickupTransaction NATURAL JOIN Holds "
-						+ "WHERE Month(Date) = MONTH(CURDATE()) GROUP BY PID;");
+						+ "WHERE Month(Date) = '" + curMonth + "' GROUP BY PID;");
 				stmt.executeUpdate();
 				
 				//subtract the dropoff and pickup quantities
@@ -542,41 +543,47 @@ public class Database {
 		return rs;
 	}
 	
-	/*  */
-	public ResultSet groceryReport() {
+	/* Takes in the username of the person who is logged in. Returns a ResultSet of the groceries. 
+	 * Null is returned if user is not a director, can't connect, or no values to display. */
+	public ResultSet groceryReport(String user) {
 		ResultSet rs = null;
 		if (connect()) {
 			try {
 				System.out.println("Display Grocery Report:");
 				
-				//creates a view of the transactions which occurred last month
-				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW LastMthPT"
-						+ " AS SELECT BID, CID FROM PickupTransaction WHERE Month(Date) = MONTH(CURDATE())-1");
-				stmt.executeUpdate();
-
-				//displays the quantities of each product for the last month
-				stmt = con.prepareStatement("CREATE OR REPLACE VIEW LastMthQT "
-						+ "AS SELECT Name, SUM(LastMonthQty) AS LastMonthQuantity FROM (LastMthPT "
-						+ "NATURAL JOIN Holds) NATURAL JOIN Product GROUP BY Name");
-				stmt.executeUpdate();
-				
-				//creates a view of the bags to be picked up this month
-				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthPT AS SELECT BID, CID FROM Client");
-				stmt.executeUpdate();
-				
-				//displays the quantities of each product for the current month
-				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthQT AS SELECT Name, SUM(CurrentMonthQty) "
-						+ "AS CurrentMonthQuantity FROM (CurrMthPT NATURAL JOIN Holds) NATURAL JOIN Product "
-						+ "GROUP BY Name");
-				stmt.executeUpdate();
-				
-				//displays the final table
-				stmt = con.prepareStatement("SELECT c.NAME, CurrentMonthQuantity, LastMonthQuantity FROM "
-						+ "CurrMthQT c LEFT JOIN LastMthQT l ON c.Name = l.Name UNION SELECT l.NAME, "
-						+ "CurrentMonthQuantity, LastMonthQuantity FROM CurrMthQT c RIGHT JOIN "
-						+ "LastMthQT l ON c.Name = l.Name");
+				//Continue only if the user is a director
+				PreparedStatement stmt = con.prepareStatement("SELECT * FROM User WHERE Username = '" + user +"' AND Type = 'Director'");
 				rs = stmt.executeQuery();
-				
+				if (rs.next()) {
+					int curMonth = 11;
+					//creates a view of the transactions which occurred last month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW LastMthPT"
+							+ " AS SELECT BID, CID FROM PickupTransaction WHERE Month(Date) = '" + (curMonth-1) + "'");
+					stmt.executeUpdate();
+	
+					//displays the quantities of each product for the last month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW LastMthQT "
+							+ "AS SELECT Name, SUM(LastMonthQty) AS LastMonthQuantity FROM (LastMthPT "
+							+ "NATURAL JOIN Holds) NATURAL JOIN Product GROUP BY Name");
+					stmt.executeUpdate();
+					
+					//creates a view of the bags to be picked up this month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthPT AS SELECT BID, CID FROM Client");
+					stmt.executeUpdate();
+					
+					//displays the quantities of each product for the current month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthQT AS SELECT Name, SUM(CurrentMonthQty) "
+							+ "AS CurrentMonthQuantity FROM (CurrMthPT NATURAL JOIN Holds) NATURAL JOIN Product "
+							+ "GROUP BY Name");
+					stmt.executeUpdate();
+					
+					//displays the final table
+					stmt = con.prepareStatement("SELECT c.NAME, CurrentMonthQuantity, LastMonthQuantity FROM "
+							+ "CurrMthQT c LEFT JOIN LastMthQT l ON c.Name = l.Name UNION SELECT l.NAME, "
+							+ "CurrentMonthQuantity, LastMonthQuantity FROM CurrMthQT c RIGHT JOIN "
+							+ "LastMthQT l ON c.Name = l.Name");
+					rs = stmt.executeQuery();
+				}
 				//stmt.close();
 			    
 			} catch(Exception e) {

@@ -11,7 +11,7 @@ public class FoodPantry {
 		dB.login("mFilly", "ehsie4n2");
 		dB.viewPickups(25);
 		//These are commented out because they are inserting which gives an error if the row already exists
-		//System.out.println(dB.confirmPickup(2, 1) + " rows affected.");
+		//System.out.println(dB.confirmPickup(8, 1) + " rows affected.");
 		//dB.dropoff("Cereal", "Kroger", 150);
 		dB.searchClient(null, "703-455-4222");
 		
@@ -32,9 +32,9 @@ public class FoodPantry {
 		//d = new Date(1989, 1, 26);	//These don't actually give the right date
 		//dB.addFamily(4, "Hary", "Yin", "Male", d);
 	    dB.viewBags();
-	    //dB.editBagProduct(1, "Bananas", 10);
+	    dB.editBagProduct(1, "Rice", 10);
 	    dB.listProducts(null);
-	    //dB.addProduct("Green beans", "Kroger", .50);
-	    dB.groceryReport();
+	    //dB.addProduct("Mushrooms", "Kroger", .50);
+	    dB.groceryReport("root");
 	}
 }
