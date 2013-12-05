@@ -545,10 +545,64 @@ public class Database {
 		}
 	}
 
-	
-	public ResultSet msr(/*month*/) {
-		//TODO
+	/* Takes in the username of the person who is logged in. */
+	public ResultSet msr(String user) {
 		ResultSet rs = null;
+		if (connect()) {
+			try {
+				System.out.println("Display Grocery Report:");
+				
+				//Continue only if the user is a director
+				PreparedStatement stmt = con.prepareStatement("SELECT * FROM User WHERE Username = '" + user +"' AND Type = 'Director'");
+				rs = stmt.executeQuery();
+				if (rs.next()) {
+					int curMonth = 11;
+					//creates a view of the transactions which occurred last month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW Week AS SELECT CID, WEEK(p.Date, 5) - WEEK(DATE_SUB(p.Date, INTERVAL DAYOFMONTH(p.Date) - 1 DAY), 5) + 1 AS Week FROM PickupTransaction p");
+					stmt.executeUpdate();
+	
+					//displays the quantities of each product for the last month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW Households AS SELECT CID, count(*) as household FROM Client GROUP BY CID");
+					stmt.executeUpdate();
+					
+					//creates a view of the bags to be picked up this month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW SmallFamily AS SELECT CID, SUM(IF(f.DOB > CURDATE()-INTERVAL 18 Year, 1, 0)) AS small FROM FamilyMember f GROUP BY CID");
+					stmt.executeUpdate();
+					
+					//displays the quantities of each product for the current month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW SmallClient AS SELECT CID, SUM(IF(c.DOB > CURDATE()-INTERVAL 18 Year, 1, 0)) AS small FROM Client c GROUP BY CID");
+					stmt.executeUpdate();
+					
+					//displays the quantities of each product for the last month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW MediumFamily AS SELECT CID, SUM(IF(f.DOB <= CURDATE()-INTERVAL 18 Year && f.DOB >= CURDATE()-INTERVAL 64 Year, 1, 0)) AS medium FROM FamilyMember f GROUP BY CID");
+					stmt.executeUpdate();
+					
+					//creates a view of the bags to be picked up this month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW MediumClient AS SELECT CID, SUM(IF(c.DOB <= CURDATE()-INTERVAL 18 Year && c.DOB >= CURDATE()-INTERVAL 64 Year, 1, 0)) AS medium FROM Client c GROUP BY CID");
+					stmt.executeUpdate();
+					
+					//displays the quantities of each product for the current month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW LargeFamily AS SELECT CID, SUM(IF(f.DOB <= CURDATE()-INTERVAL 65 Year, 1, 0)) AS large FROM FamilyMember f GROUP BY CID");
+					stmt.executeUpdate();
+					
+					//displays the quantities of each product for the current month
+					stmt = con.prepareStatement("CREATE OR REPLACE VIEW LargeClient AS SELECT CID, SUM(IF(c.DOB <= CURDATE()-INTERVAL 65 Year, 1, 0)) AS large FROM Client c GROUP BY CID");
+					stmt.executeUpdate();
+					
+					
+					//displays the final table
+					stmt = con.prepareStatement("SELECT Week, sum(household), sum(ifnull(sf.small,0) + ifnull(sc.small,0)) AS 'Under 18 Years', sum(ifnull(mf.medium,0) + ifnull(mc.medium,0)) AS '18-64 years', sum(ifnull(lf.large,0) + ifnull(lc.large,0)) AS '65 years & Older' FROM ((((((Week w LEFT OUTER JOIN SmallClient sf ON w.CID = sf.CID) LEFT OUTER JOIN SmallFamily sc ON sf.CID = sc.CID) LEFT OUTER JOIN MediumClient mc ON sf.CID = mc.CID) LEFT OUTER JOIN MediumFamily mf ON sf.CID = mf.CID) LEFT OUTER JOIN LargeClient lc ON sf.CID = lc.CID) LEFT OUTER JOIN LargeFamily lf ON sf.CID = lf.CID) LEFT OUTER JOIN Households h ON sf.CID = h.CID GROUP BY Week");
+					rs = stmt.executeQuery();
+				}
+				//stmt.close();
+			    
+			} catch(Exception e) {
+				System.err.println("Exception: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				//close();
+			}
+		}
 		return rs;
 	}
 	

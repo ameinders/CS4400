@@ -36,6 +36,7 @@ public class FoodPantry {
 	    dB.editBagProduct(1, "Rice", 10);
 	    dB.listProducts(null);
 	    //dB.addProduct("Mushrooms", "Kroger", .50);
+	    dB.msr("root");
 	    dB.groceryReport("root");
 	}
 }
