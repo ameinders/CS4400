@@ -367,12 +367,20 @@ public class Database {
 		return rs;
 	}
 	
-	/* Returns a result set which holds all the contents of a bag type. */
-	public ResultSet bagContents(int bid) {
+	/* Takes in a bid or cid, where the other is set to 0. 
+	 * Returns a result set which holds all the contents of a bag type. */
+	public ResultSet bagContents(int bid, int cid) {
 		ResultSet rs = null;
 		if (connect()) {
 			try {
 				System.out.println("View a bag's contents:");
+				
+				if (bid == 0) {
+					PreparedStatement stmt = con.prepareStatement("SELECT BID FROM Client WHERE CID = 2");
+					rs = stmt.executeQuery();
+					rs.next();
+					bid = rs.getInt("BID");
+				}
 				
 				//displays the quantity of each product with a quantity > 0 in the bag
 				PreparedStatement stmt = con.prepareStatement("SELECT Name, CurrentMonthQty FROM Product "
@@ -391,6 +399,7 @@ public class Database {
 		}
 		return rs;
 	}
+
 
 	/* Updates the quantity of a product for a bag, given the product name, and the quantity. */
 	public void editBagProduct(int bid, String product, int quantity) {

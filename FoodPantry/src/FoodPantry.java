@@ -14,6 +14,7 @@ public class FoodPantry {
 		//System.out.println(dB.confirmPickup(8, 1) + " rows affected.");
 		//dB.dropoff("Cereal", "Kroger", 150);
 		dB.searchClient(null, "703-455-4222");
+		dB.bagContents(0, 1);
 		
 		SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
 		java.util.Date utilDate = null;
