@@ -16,6 +16,7 @@ import javax.swing.JTable;
 
 public class NewClientPanel extends JPanel {
 	private JButton saveClientButton;
+	private JTable table;
 
 	public NewClientPanel(ActionListener saveClientListener) {
 		super(new BorderLayout());
@@ -41,10 +42,8 @@ public class NewClientPanel extends JPanel {
 
 		/* Center Panel */
 		String[] columnNames = { "Attribute", "Value" };
-		Object[][] data = { { "Bag Type", " " }, { "Pick Up Day of Month", " " }, { "First Name", " " }, { "Last Name", " " }, { "Gender", " " },
-				{ "Date of Birth", " " }, { "Street", " " }, { "Apartment #", " " }, { "City", " " }, { "State", " " }, { "Zipcode", " " },
-				{ "Telephone", " " }, { "Financial Aid", " " }, { "Start Date", " " }, { "Delivery", " " } };
-		JTable table = new JTable(data, columnNames);
+		Object[][] data = { { "Bag Type", " " }, { "Pick Up Day of Month", " " }, { "First Name", " " }, { "Last Name", " " }, { "Gender", " " }, { "Date of Birth", " " }, { "Street", " " }, { "Apartment #", " " }, { "City", " " }, { "State", " " }, { "Zipcode", " " }, { "Telephone", " " }, { "Financial Aid", " " }, { "Start Date", " " }, { "Delivery", " " } };
+		table = new JTable(data, columnNames);
 
 		JScrollPane scrollPane = new JScrollPane(table);
 		table.setFillsViewportHeight(true);
@@ -57,5 +56,13 @@ public class NewClientPanel extends JPanel {
 		saveClientButton.addActionListener(saveClientListener);
 		southPanel.add(saveClientButton);
 		add(southPanel, BorderLayout.SOUTH);
+	}
+
+	public Object[] getData() {
+		Object[] data = new Object[15];
+		for (int i = 0; i < 15; i++) {
+			data[i] = table.getValueAt(i, 1);
+		}
+		return data;
 	}
 }

@@ -6,6 +6,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -20,9 +23,15 @@ import javax.swing.JTable;
 import javax.swing.UIManager;
 import javax.swing.table.TableCellRenderer;
 
-public class BagListPanel extends JPanel {
+public class BagListPanel extends ApplicationPanel {
+	private ActionListener selectBagListener;
+	private JTable table;
+	private JScrollPane scrollPane;
+	private ArrayList<Integer> bids = new ArrayList<Integer>();
+
 	public BagListPanel(ActionListener selectBagListener, final ActionListener returnButtonListener) {
 		super(new BorderLayout());
+		this.selectBagListener = selectBagListener;
 		/* North Panel */
 		JPanel northPanel = new JPanel(new GridBagLayout());
 		northPanel.add(new JPanel(new GridBagLayout()) {
@@ -44,15 +53,15 @@ public class BagListPanel extends JPanel {
 		add(northPanel, BorderLayout.NORTH);
 
 		/* Table Panel */
+
 		String[] columnNames = { "View/Edit", "Bag Name", "# Items", "# Clients", "Cost" };
-		Object[][] data = { { "  ", "Individual", new Integer(10), new Integer(5), new Integer(0) },
-				{ " ", "Family of Two", new Integer(25), new Integer(12), new Integer(0) } };
-		JTable table = new JTable(data, columnNames);
+		Object[][] data = { { "  ", "Individual", new Integer(10), new Integer(5), new Integer(0) }, { " ", "Family of Two", new Integer(25), new Integer(12), new Integer(0) } };
+		table = new JTable(data, columnNames);
 
 		table.getColumn("View/Edit").setCellRenderer(new ButtonRenderer());
 		table.getColumn("View/Edit").setCellEditor(new ButtonEditor(new JCheckBox(), selectBagListener));
 
-		JScrollPane scrollPane = new JScrollPane(table);
+		scrollPane = new JScrollPane(table);
 		table.setFillsViewportHeight(true);
 
 		add(scrollPane);
@@ -65,6 +74,50 @@ public class BagListPanel extends JPanel {
 			}
 		});
 		add(southPanel, BorderLayout.SOUTH);
+	}
+
+	public void setData(ResultSet rs) {
+		System.out.println("Updating pickuppanel with search results...");
+		remove(scrollPane);
+
+		String[] columnNames = { "View/Edit", "Bag Name", "# Items", "# Clients", "Cost" };
+		ArrayList<Object[]> rows = new ArrayList<Object[]>();
+		bids = new ArrayList<Integer>();
+		try {
+			while (rs.next()) {
+				// Retrieve by column name
+				String name = rs.getString("Name");
+				String items = rs.getString("NumItems");
+				String clients = rs.getString("NumClients");
+				int cost = rs.getInt("Cost");
+
+				// Display values
+				rows.add(new Object[] { "View/Edit", name, items, clients, cost });
+				bids.add(Integer.parseInt(rs.getString("BID")));
+				System.out.print("BID: " + bids.get(bids.size() - 1));
+				System.out.print(", Name: " + name);
+				System.out.print(", NumItems: " + items);
+				System.out.print(", NumClients: " + clients);
+				System.out.print(", Cost: " + cost);
+				System.out.println();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		Object[][] data = rows.toArray(new Object[0][7]);
+		table = new JTable(data, columnNames);
+
+		table.getColumnModel().getColumn(2).setPreferredWidth(2);
+		table.getColumnModel().getColumn(3).setPreferredWidth(50);
+
+		table.getColumn("View/Edit").setCellRenderer(new ButtonRenderer());
+		table.getColumn("View/Edit").setCellEditor(new ButtonEditor(new JCheckBox(), selectBagListener));
+		table.setFillsViewportHeight(true);
+		scrollPane = new JScrollPane(table);
+		add(scrollPane);
+		invalidate();
+		validate();
+		repaint();
 	}
 
 	class ButtonRenderer extends JButton implements TableCellRenderer {
@@ -124,7 +177,7 @@ public class BagListPanel extends JPanel {
 
 		public Object getCellEditorValue() {
 			if (isPushed) {
-				listener.actionPerformed(new ActionEvent(BagListPanel.this, 0, "Bag " + row + " selected for viewing."));
+				listener.actionPerformed(new ActionEvent(BagListPanel.this, bids.get(row), "Bag " + row + " selected for viewing."));
 			}
 			isPushed = false;
 			return new String(label);

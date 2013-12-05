@@ -15,8 +15,7 @@ import javax.swing.border.EmptyBorder;
 public class HomePanel extends JPanel {
 	private JButton pickupsButton, bagsButton, dropoffsButton, clientsButton, serviceReportButton, productsButton;
 
-	public HomePanel(ActionListener pickupListener, ActionListener bagsListener, ActionListener dropoffsListener, ActionListener clientsListner,
-			ActionListener serviceReportListener, ActionListener productsListener) {
+	public HomePanel(ActionListener pickupListener, ActionListener bagsListener, ActionListener dropoffsListener, ActionListener clientsListner, ActionListener serviceReportListener, ActionListener productsListener) {
 		super(new GridBagLayout());
 		Image pickups_icon = null, bags_icon = null, dropoffs_icon = null, clients_icon = null, serviceReport_icon = null, products_icon = null;
 		try {

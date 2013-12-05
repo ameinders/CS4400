@@ -5,6 +5,9 @@ import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -16,6 +19,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 public class GroceryPanel extends JPanel {
+	private JTable table;
+	private JScrollPane scrollPane;
+
 	public GroceryPanel(final ActionListener returnListener) {
 		super(new BorderLayout());
 		/* North Panel */
@@ -41,9 +47,9 @@ public class GroceryPanel extends JPanel {
 		/* Center Panel */
 		String[] columnNames = { "Product", "Quantity", "Last Month Quantity" };
 		Object[][] data = { { "Bread Mix", new Integer(75), new Integer(25) }, { "Can Fruit Pears", new Integer(55), new Integer(65) } };
-		JTable table = new JTable(data, columnNames);
+		table = new JTable(data, columnNames);
 
-		JScrollPane scrollPane = new JScrollPane(table);
+		scrollPane = new JScrollPane(table);
 		table.setFillsViewportHeight(true);
 
 		add(scrollPane);
@@ -56,5 +62,39 @@ public class GroceryPanel extends JPanel {
 			}
 		});
 		add(southPanel, BorderLayout.SOUTH);
+	}
+
+	public void setData(ResultSet rs) {
+		System.out.println("Updating Grocery panel with search results...");
+		remove(scrollPane);
+
+		String[] columnNames = { "Product", "Quantity", "Last Month Quantity" };
+		ArrayList<Object[]> rows = new ArrayList<Object[]>();
+		try {
+			while (rs.next()) {
+				// Retrieve by column name
+				String name = rs.getString("NAME");
+				int curquan = rs.getInt("CurrentMonthQuantity");
+				int lastquan = rs.getInt("LastMonthQuantity");
+
+				// Display values
+				rows.add(new Object[] { name, curquan, lastquan });
+				System.out.print("Product: " + name);
+				System.out.print(", Quantity: " + curquan);
+				System.out.print(", Previous Quantity: " + lastquan);
+				System.out.println();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		Object[][] data = rows.toArray(new Object[0][6]);
+		table = new JTable(data, columnNames);
+
+		table.setFillsViewportHeight(true);
+		scrollPane = new JScrollPane(table);
+		add(scrollPane);
+		invalidate();
+		validate();
+		repaint();
 	}
 }

@@ -4,6 +4,7 @@ import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -16,6 +17,7 @@ import javax.swing.JTable;
 
 public class AddFamilyPanel extends JPanel {
 	private JButton saveFamilyMembersButton;
+	private JTable table;
 
 	public AddFamilyPanel(ActionListener saveFamilyListener) {
 		super(new BorderLayout());
@@ -43,7 +45,7 @@ public class AddFamilyPanel extends JPanel {
 		/* Center Panel */
 		String[] columnNames = { "First Name", "Last Name", "Gender", "Date of Birth" };
 		Object[][] data = { { " ", " ", " ", " " }, { " ", " ", " ", " " }, { " ", " ", " ", " " }, { " ", " ", " ", " " } };
-		JTable table = new JTable(data, columnNames);
+		table = new JTable(data, columnNames);
 
 		JScrollPane scrollPane = new JScrollPane(table);
 		table.setFillsViewportHeight(true);
@@ -57,5 +59,15 @@ public class AddFamilyPanel extends JPanel {
 		southPanel.add(saveFamilyMembersButton);
 		add(southPanel, BorderLayout.SOUTH);
 
+	}
+
+	public Object[][] getData() {
+		ArrayList<Object[]> members = new ArrayList<Object[]>();
+		for (int i = 0; i < table.getRowCount(); i++) {
+			if (table.getValueAt(i, 0) != "")
+				members.add(new Object[] { table.getValueAt(i, 0), table.getValueAt(i, 1), table.getValueAt(i, 2), table.getValueAt(i, 3) });
+		}
+		Object[][] data = members.toArray(new Object[0][4]);
+		return data;
 	}
 }

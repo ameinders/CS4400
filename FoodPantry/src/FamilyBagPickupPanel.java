@@ -5,6 +5,12 @@ import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -18,9 +24,13 @@ import javax.swing.JTable;
 public class FamilyBagPickupPanel extends JPanel {
 	private JButton completePickupButton;
 	private JButton returnButton;
+	private JTable table;
+	private JScrollPane scrollPane;
+	private JLabel nameLabel, dateLabel;
+	private String placeholderName = "Mary Smith";
+	private String placeholderDate = "September 5, 2013";
 
-	String placeholderName = "Mary Smith";
-	String placeholderDate = "September 5, 2013";
+	private int cid;
 
 	public FamilyBagPickupPanel(ActionListener completePickupListener, ActionListener returnListener, int clientID) {
 		super(new BorderLayout());
@@ -44,19 +54,19 @@ public class FamilyBagPickupPanel extends JPanel {
 		});
 
 		JPanel headerMetaPanel = new JPanel(new GridLayout(2, 1));
-		JLabel nameLabel = new JLabel(placeholderName);
-		JLabel dateLabel = new JLabel(placeholderDate);
+		nameLabel = new JLabel(placeholderName);
+		dateLabel = new JLabel(placeholderDate);
 		headerMetaPanel.add(nameLabel);
 		headerMetaPanel.add(dateLabel);
 		headerPanel.add(headerMetaPanel);
 		add(headerPanel, BorderLayout.NORTH);
 
 		/* Center Panel */
-		Object[][] data = { { "Cake Mix", new Integer(1) }, { "Canned Stew", new Integer(6) } };
+		Object[][] data = {};
 		String[] columnNames = { "Product", "Quantity" };
-		JTable table = new JTable(data, columnNames);
+		table = new JTable(data, columnNames);
 
-		JScrollPane scrollPane = new JScrollPane(table);
+		scrollPane = new JScrollPane(table);
 		table.setFillsViewportHeight(true);
 
 		add(scrollPane);
@@ -70,5 +80,40 @@ public class FamilyBagPickupPanel extends JPanel {
 		returnButton.addActionListener(returnListener);
 		buttonPanel.add(returnButton);
 		add(buttonPanel, BorderLayout.SOUTH);
+	}
+
+	public void setData(ResultSet rs, String name, int cid) {
+		this.cid = cid;
+		nameLabel.setText(name);
+		dateLabel.setText(new SimpleDateFormat("MMMM dd, yyyy").format(Calendar.getInstance().getTime()));
+		System.out.println("Updating family bag panel with search results...");
+		remove(scrollPane);
+
+		ArrayList<Object[]> rows = new ArrayList<Object[]>();
+		try {
+			while (rs.next()) {
+				// Retrieve by column name
+				String product = rs.getString("Name");
+				String quantity = rs.getString("CurrentMonthQty");
+				// Display values
+				rows.add(new Object[] { product, quantity });
+				System.out.println(Arrays.toString(rows.get(rows.size() - 1)));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		String[] columnNames = { "Product", "Quantity" };
+		Object[][] data = rows.toArray(new Object[0][2]);
+		table = new JTable(data, columnNames);
+		table.setFillsViewportHeight(true);
+		scrollPane = new JScrollPane(table);
+		add(scrollPane);
+		invalidate();
+		validate();
+		repaint();
+	}
+
+	public int getCID() {
+		return cid;
 	}
 }
