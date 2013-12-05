@@ -90,16 +90,21 @@ public class Database {
 			try {
 				System.out.println("Pickup:");
 			     
-				String sqlCreate = "CREATE OR REPLACE VIEW FamilySize AS SELECT CID, COUNT(*)+1 AS Size FROM FamilyMember";
+				//Union Client and FamilyMember tables
+				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW TotalFamily AS SELECT CID, "
+						+ "First, Last FROM Client UNION SELECT CID, First, Last FROM FamilyMember");
+				stmt.executeUpdate();
 				
-			    String sql;
-			    sql = "SELECT Last, First, Size, ApartmentNum, Street, City, State, Zip, Phone, PDay FROM Client "
-			    		+ "NATURAL JOIN FamilySize WHERE PDay = '" + pDay +"'";
-			    PreparedStatement stmt = con.prepareStatement(sql);
-			      
-			    stmt = con.prepareStatement(sql);
-			    stmt.executeUpdate(sqlCreate);
-			    rs = stmt.executeQuery(sql);
+				//Get size of unioned table
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW FamilySize AS SELECT CID,"
+						+ " COUNT(*) AS Size FROM TotalFamily GROUP BY CID;");
+				stmt.executeUpdate();
+				
+				//Display the clients with the specified pay day
+			    stmt = con.prepareStatement( "SELECT Last, First, Size, ApartmentNum, Street, City,"
+			    		+ " State, Zip, Phone, PDay FROM Client c LEFT JOIN FamilySize f ON c.CID = f.CID "
+			    		+ "WHERE PDay = '" + pDay +"'");
+			    rs = stmt.executeQuery();
 
 			    //Extract data from result set
 			    while(rs.next()){
@@ -119,6 +124,7 @@ public class Database {
 			        System.out.print(", Address: " + address);
 			        System.out.print(", Phone: " + phone);
 			        System.out.print(", PDay: " + pday);
+			        System.out.println();
 			     }
 			      
 			     //stmt.close();
@@ -427,9 +433,9 @@ public class Database {
 				System.out.println("List Products:");
 				
 				//get the dropoff quantities for each product of last month
-				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW LstMthDQty AS SELECT "
-						+ "PID, SUM(Qty) AS TotalDQty FROM DropoffTransaction NATURAL JOIN Dropoff "
-						+ "WHERE Month(Date) = MONTH(CURDATE())-1 GROUP BY PID");
+				PreparedStatement stmt = con.prepareStatement("CREATE OR REPLACE VIEW LstMthDQty"
+						+ " AS SELECT PID, SUM(Qty) AS TotalDQty FROM DropoffTransaction "
+						+ "NATURAL JOIN Dropoff WHERE Month(Date) = MONTH(CURDATE())-1 GROUP BY PID");
 				stmt.executeUpdate();
 
 				//get the pickup quantities for each product of last month
@@ -439,36 +445,43 @@ public class Database {
 				stmt.executeUpdate();
 				
 				//subtract the dropoff and pickup quantities
-				stmt = con.prepareStatement("CREATE OR REPLACE VIEW LastQtw AS SELECT PID, "
-						+ "(TotalDQty - TotalPTQty) AS TotalLMQty FROM LstMthDQty NATURAL JOIN LstMthPTQtw");
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW One AS SELECT d.PID, (ifnull(TotalDQty, 0) "
+						+ "- ifnull(TotalPTQty, 0)) AS TotalLMQty FROM LstMthDQty d LEFT JOIN LstMthPTQtw p ON "
+						+ "d.PID = p.PID UNION SELECT p.PID, (ifnull(TotalDQty, 0) - ifnull(TotalPTQty, 0))"
+						+ " AS TotalLMQty FROM LstMthDQty d RIGHT JOIN LstMthPTQtw p ON d.PID = p.PID");
 				stmt.executeUpdate();
 				
 				//get the dropoff quantities for each product of curr month
-				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthDQty AS SELECT PID, SUM(Qty)"
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthDQty AS SELECT PID, SUM(Qty) "
 						+ "AS TotalDQty FROM DropoffTransaction NATURAL JOIN Dropoff WHERE Month(Date) = "
 						+ "MONTH(CURDATE()) GROUP BY PID");
 				stmt.executeUpdate();
 				
 				//get the pickup quantities for each product of curr month
-				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthPTQtw AS SELECT PID, SUM(LastMonthQty) "
-						+ "AS TotalPTQty FROM PickupTransaction NATURAL JOIN Holds WHERE Month(Date) = "
-						+ "MONTH(CURDATE()) GROUP BY PID");
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrMthPTQtw AS SELECT PID, "
+						+ "SUM(LastMonthQty) AS TotalPTQty FROM PickupTransaction NATURAL JOIN Holds "
+						+ "WHERE Month(Date) = MONTH(CURDATE()) GROUP BY PID;");
 				stmt.executeUpdate();
 				
 				//subtract the dropoff and pickup quantities
-				stmt = con.prepareStatement("CREATE OR REPLACE VIEW CurrQtw AS SELECT PID, (TotalDQty - TotalPTQty) "
-						+ "AS TotalCMQty FROM CurrMthDQty NATURAL JOIN CurrMthPTQtw");
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW Two AS SELECT d.PID, (ifnull(TotalDQty, 0)"
+						+ " - ifnull(TotalPTQty, 0)) AS TotalCMQty FROM CurrMthDQty d LEFT JOIN CurrMthPTQtw p "
+						+ "ON d.PID = p.PID UNION SELECT p.PID, (ifnull(TotalDQty, 0) - ifnull(TotalPTQty, 0)) "
+						+ "AS TotalCMQty FROM CurrMthDQty d RIGHT JOIN CurrMthPTQtw p ON d.PID = p.PID");
 				stmt.executeUpdate();
 				
-				//add total quantities and display name and cost
-				if (product == null)
-					stmt = con.prepareStatement("SELECT Name, (TotalLMQty + TotalCMQty) AS Quantity, Cost "
-							+ "FROM Product NATURAL JOIN LastQtw NATURAL JOIN CurrQtw");
-				else
-					stmt = con.prepareStatement("SELECT Name, (TotalLMQty + TotalCMQty) AS Quantity, Cost "
-							+ "FROM Product NATURAL JOIN LastQtw NATURAL JOIN CurrQtw "
-							+ "WHERE Name = '" + product + "'");
+				//add last month's and this month's quantities
+				stmt = con.prepareStatement("CREATE OR REPLACE VIEW Three AS SELECT o.PID, (ifnull(TotalLMQty, 0) "
+						+ "+ ifnull(TotalCMQty, 0)) AS Quantity FROM One o LEFT JOIN Two t ON o.PID = t.PID UNION "
+						+ "SELECT t.PID, (ifnull(TotalLMQty, 0) + ifnull(TotalCMQty, 0)) AS Quantity FROM One o "
+						+ "RIGHT JOIN Two t ON o.PID = t.PID");
+				stmt.executeUpdate();
 				
+				//display name, quantity, and cost
+				if (product == null)
+					stmt = con.prepareStatement("SELECT Name, Quantity, Cost FROM Product NATURAL JOIN Three");
+				else
+					stmt = con.prepareStatement("SELECT Name, Quantity, Cost FROM Product NATURAL JOIN Three WHERE Name = '" + product + "'");
 				rs = stmt.executeQuery();
 				
 				//stmt.close();
