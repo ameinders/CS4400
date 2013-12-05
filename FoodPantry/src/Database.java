@@ -223,9 +223,9 @@ public class Database {
 				
 				System.out.println("Search for Clients:");
 				PreparedStatement stmt = con.prepareStatement("SELECT Last, First, Street, City, State, "
-						+ "Zip, ApartmentNum, Phone, Start, CID FROM Client NATURAL JOIN (SELECT CID, COUNT(*) "
-						+ "AS Size FROM FamilyMember GROUP BY CID) AS T WHERE Last = '" + lName + "' OR "
-						+ "Phone = '" + telephone + "'");
+						+ "Zip, ApartmentNum, Phone, Start, c.CID FROM Client c LEFT OUTER JOIN (SELECT CID, COUNT(*) "
+						+ "AS Size FROM FamilyMember GROUP BY CID) AS T ON c.CID = T.CID WHERE Last = '" + lName 
+						+ "' OR Phone = '" + telephone + "'");
 				rs = stmt.executeQuery();
 				
 				//Extract data from result set
@@ -376,7 +376,7 @@ public class Database {
 				System.out.println("View a bag's contents:");
 				
 				if (bid == 0) {
-					PreparedStatement stmt = con.prepareStatement("SELECT BID FROM Client WHERE CID = 2");
+					PreparedStatement stmt = con.prepareStatement("SELECT BID FROM Client WHERE CID = cid");
 					rs = stmt.executeQuery();
 					rs.next();
 					bid = rs.getInt("BID");
